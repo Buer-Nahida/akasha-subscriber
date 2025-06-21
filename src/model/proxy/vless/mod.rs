@@ -23,6 +23,8 @@ pub(super) struct Vless {
     ws_opts: Option<Ws>,
     #[serde(rename = "h2-opts")]
     h2_opts: Option<H2>,
+    #[serde(rename = "v2ray-http-upgrade")]
+    v2ray_http_upgrade: Option<bool>,
 }
 impl Vless {
     pub(super) fn into_string(self) -> String {
@@ -39,6 +41,7 @@ impl Vless {
             reality_opts,
             ws_opts,
             h2_opts,
+            v2ray_http_upgrade,
         } = self;
         let name = utf8_percent_encode(&name, NON_ALPHANUMERIC);
         let (reality_flag, pbk, sid) = match reality_opts {
@@ -68,7 +71,13 @@ impl Vless {
                     _ => None,
                 },
                 flow.map(param("flow")),
-                network.map(param("type")),
+                network
+                    .map(|n| if n == "ws" && v2ray_http_upgrade.unwrap_or(false) {
+                        "httpupgrade".into()
+                    } else {
+                        n
+                    })
+                    .map(param("type")),
                 servername.map(param("sni")),
                 alpn.map(encode_array).map(param("alpn")),
                 pbk.map(param("pbk")),
